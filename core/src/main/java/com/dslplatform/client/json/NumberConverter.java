@@ -6,13 +6,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 public class NumberConverter {
-
 	private final static int[] Digits = new int[100];
-	private final static int[] Digit = new int[]{0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+	private final static int[] Digit = new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 
 	static {
 		for (int i = 0; i < 100; i++) {
-			Digits[i] = (i / 10 == 0 ? 1 << 16 : 0) + (((i / 10) + '0') << 8) + i % 10 + '0';
+			Digits[i] = (i < 10 ? 1 << 16 : 0) + (i / 10 << 8) + i % 10 + '0' * 0x101;
 		}
 	}
 
@@ -36,17 +35,18 @@ public class NumberConverter {
 	}
 
 	static int read2(final char[] buf, final int pos) {
-		final int v1 = buf[pos] - 48;
-		return (v1 << 3) + (v1 << 1) + buf[pos + 1] - 48;
+		final int v1 = buf[pos];
+		return (v1 << 3) + (v1 << 1) + buf[pos + 1] - '0' * 11;
 	}
 
 	static int read4(final char[] buf, final int pos) {
-		final int v2 = buf[pos + 1] - 48;
-		final int v3 = buf[pos + 2] - 48;
-		return (buf[pos] - 48) * 1000
-				+ (v2 << 6) + (v2 << 5) + (v2 << 2)
-				+ (v3 << 3) + (v3 << 1)
-				+ buf[pos + 3] - 48;
+		final int v1 = buf[pos];
+		final int v2 = buf[pos + 1];
+		final int v3 = buf[pos + 2];
+		return (v1 << 10) - (v1 << 5) + (v1 << 3) +
+				(v2 << 6) + (v2 << 5) + (v2 << 2) +
+				(v3 << 3) + (v3 << 1) +
+				buf[pos + 3] - '0' * 1111;
 	}
 
 	public static void serializeNullable(final Double value, final JsonWriter sw) {
@@ -119,7 +119,7 @@ public class NumberConverter {
 		return reader.deserializeCollectionWithMove(FloatReader);
 	}
 
-	public static void deserializeFloatCollection(final JsonReader reader, Collection<Float> res) throws IOException {
+	public static void deserializeFloatCollection(final JsonReader reader, final Collection<Float> res) throws IOException {
 		reader.deserializeCollectionWithMove(FloatReader, res);
 	}
 
@@ -157,7 +157,7 @@ public class NumberConverter {
 			}
 
 			int v;
-			for (; ; ) {
+			for (;;) {
 				q = i / 100;
 				r = i - ((q << 6) + (q << 5) + (q << 2));
 				i = q;
@@ -179,15 +179,15 @@ public class NumberConverter {
 			if (buf[0] == '-') {
 				for (int i = 1; i < buf.length; i++) {
 					if (i == len) break;
-					value = (value << 3) + (value << 1) - Digit[buf[i] - 48];
+					value = (value << 3) + (value << 1) - Digit[buf[i] - '0'];
 				}
 			} else {
 				for (int i = 0; i < buf.length; i++) {
 					if (i == len) break;
-					value = (value << 3) + (value << 1) + Digit[buf[i] - 48];
+					value = (value << 3) + (value << 1) + Digit[buf[i] - '0'];
 				}
 			}
-		} catch (ArrayIndexOutOfBoundsException ignore) {
+		} catch (final ArrayIndexOutOfBoundsException ignore) {
 			return Integer.parseInt(new String(buf, 0, len));
 		}
 		return value;
@@ -195,7 +195,7 @@ public class NumberConverter {
 
 	private static JsonReader.ReadObject<Integer> IntReader = new JsonReader.ReadObject<Integer>() {
 		@Override
-		public Integer read(JsonReader reader) throws IOException {
+		public Integer read(final JsonReader reader) throws IOException {
 			return deserializeInt(reader);
 		}
 	};
@@ -241,7 +241,7 @@ public class NumberConverter {
 			}
 
 			int v;
-			for (; ; ) {
+			for (;;) {
 				q = i / 100;
 				r = (int) (i - ((q << 6) + (q << 5) + (q << 2)));
 				i = q;
@@ -263,15 +263,15 @@ public class NumberConverter {
 			if (buf[0] == '-') {
 				for (int i = 1; i < buf.length; i++) {
 					if (i == len) break;
-					value = (value << 3) + (value << 1) - Digit[buf[i] - 48];
+					value = (value << 3) + (value << 1) - Digit[buf[i] - '0'];
 				}
 			} else {
 				for (int i = 0; i < buf.length; i++) {
 					if (i == len) break;
-					value = (value << 3) + (value << 1) + Digit[buf[i] - 48];
+					value = (value << 3) + (value << 1) + Digit[buf[i] - '0'];
 				}
 			}
-		} catch (ArrayIndexOutOfBoundsException ignore) {
+		} catch (final ArrayIndexOutOfBoundsException ignore) {
 			return Long.parseLong(new String(buf, 0, len));
 		}
 		//TODO: leading zero...
